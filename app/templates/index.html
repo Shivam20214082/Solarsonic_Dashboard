@@ -148,13 +148,13 @@
         <h2>📊 Sensor Data Records</h2>
 
         <div class="date-range">
-            <label>
-                <input type="checkbox" id="download_all" onchange="toggleDateInputs()"> Download All
-            </label>
             <label for="start">Start Date:</label>
             <input type="date" id="start" name="start">
             <label for="end">End Date:</label>
             <input type="date" id="end" name="end">
+            <label>
+                <input type="checkbox" id="download_all" onchange="toggleDateInputs()"> Download All <br>
+            </label>
             <div class="btn-group">
                 <button onclick="downloadPDF()">📥 Download PDF</button>
                 <button onclick="downloadCSV()">📥 Download CSV</button>
