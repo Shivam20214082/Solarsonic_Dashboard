@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .date-range {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="date"], button {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            padding: 10px 15px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            overflow-x: auto;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:hover {
+            background: #e9f5ff;
+            transition: 0.2s;
+        }
+
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .pagination a {
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .pagination a:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            input[type="date"], button {
+                width: 100%;
+                text-align: center;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>📊 Sensor Data Records</h2>
+
+        <div class="date-range">
+            <label>
+                <input type="checkbox" id="download_all" onchange="toggleDateInputs()"> Download All
+            </label>
+            <label for="start">Start Date:</label>
+            <input type="date" id="start" name="start">
+            <label for="end">End Date:</label>
+            <input type="date" id="end" name="end">
+            <div class="btn-group">
+                <button onclick="downloadPDF()">📥 Download PDF</button>
+                <button onclick="downloadCSV()">📥 Download CSV</button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table>
+                <tr>
+                    <th>Temperature (°C)</th>
+                    <th>Humidity (%)</th>
+                    <th>MQ2 Analog</th>
+                    <th>MQ2 Digital</th>
+                    <th>Sound Analog</th>
+                    <th>Sound Digital</th>
+                    <th>MQ9 Analog</th>
+                    <th>MQ9 Digital</th>
+                    <th>MQ8 Analog</th>
+                    <th>MQ8 Digital</th>
+                    <th>PM2.5 Density</th>
+                    <th>PM10 Density</th>
+                    <th>Timestamp</th>
+                </tr>
+                {% if data %}
+                {% for record in data %}
+                <tr>
+                    <td>{{ record.temperature }}</td>
+                    <td>{{ record.humidity }}</td>
+                    <td>{{ record.mq2_analog }}</td>
+                    <td>{{ record.mq2_digital }}</td>
+                    <td>{{ record.sound_analog }}</td>
+                    <td>{{ record.sound_digital }}</td>
+                    <td>{{ record.mq9_analog }}</td>
+                    <td>{{ record.mq9_digital }}</td>
+                    <td>{{ record.mq8_analog }}</td>
+                    <td>{{ record.mq8_digital }}</td>
+                    <td>{{ record.dust_density_pm25 }}</td>
+                    <td>{{ record.dust_density_pm10 }}</td>
+                    <td>{{ record.timestamp }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="13">No records found for the selected date range.</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="/?page={{ page - 1 }}">⬅ Previous</a>
+            {% endif %}
+            <span>Page {{ page }} of {{ total_pages }}</span>
+            {% if page < total_pages %}
+                <a href="/?page={{ page + 1 }}">Next ➡</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleDateInputs() {
+            let downloadAll = document.getElementById("download_all").checked;
+            let startInput = document.getElementById("start");
+            let endInput = document.getElementById("end");
+
+            // Disable start and end date inputs if "Download All" is selected
+            startInput.disabled = downloadAll;
+            endInput.disabled = downloadAll;
+        }
+
+        function formatDate(date) {
+            return new Date(date).toISOString().split('T')[0];
+        }
+
+        function downloadPDF() {
+            let downloadAll = document.getElementById("download_all").checked;
+            let startDate = document.getElementById("start").value;
+            let endDate = document.getElementById("end").value;
+
+            let url = `/download-pdf?download_all=${downloadAll}`;
+            if (!downloadAll && startDate && endDate) {
+                url += `&start=${formatDate(startDate)}&end=${formatDate(endDate)}`;
+            }
+            
+            window.location.href = url;
+        }
+
+        function downloadCSV() {
+            let downloadAll = document.getElementById("download_all").checked;
+            let startDate = document.getElementById("start").value;
+            let endDate = document.getElementById("end").value;
+
+            let url = `/download-csv?download_all=${downloadAll}`;
+            if (!downloadAll && startDate && endDate) {
+                url += `&start=${formatDate(startDate)}&end=${formatDate(endDate)}`;
+            }
+
+            window.location.href = url;
+        }
+    </script>
+
+</body>
+</html>
