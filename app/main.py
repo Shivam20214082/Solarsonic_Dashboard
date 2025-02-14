@@ -35,6 +35,24 @@ class SensorData(BaseModel):
     dust_density_pm25: float
     dust_density_pm10: float
 
+@app.get("/")
+async def home(request: Request, page: int = 1):
+    per_page = 25
+    total_records = collection.count_documents({})
+    total_pages = (total_records + per_page - 1) // per_page
+
+    records = list(collection.find({}, {"_id": 0})
+                   .sort("timestamp", -1)
+                   .skip((page - 1) * per_page)
+                   .limit(per_page))
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "data": records,
+        "page": page,
+        "total_pages": total_pages
+    })
+
 @app.post("/insert")
 async def insert_data(data: SensorData):
     record = data.dict()
